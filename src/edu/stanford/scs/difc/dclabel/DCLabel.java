@@ -2,35 +2,60 @@ package edu.stanford.scs.difc.dclabel;
 
 import edu.stanford.scs.difc.Label;
 
-public class DCLabel implements Label<DCLabel> {
+/**
+ * 
+ * @author alevy
+ *
+ */
+public class DCLabel extends Label<DCLabel> {
 
+	/** Top of the lattice: most secret data with no integrity guarantees. */
 	public static final DCLabel Top = new DCLabel(CNF.False, CNF.True);
-	public static final DCLabel Public = new DCLabel(CNF.True, CNF.True);
+	
+	/** Bottom of the lattice: totally public data with highest integrity
+	 * guarantees
+	 */
 	public static final DCLabel Bottom = new DCLabel(CNF.True, CNF.False);
+	
+	/** "Middle" of the lattice: public data with no integrity guarantees */
+	public static final DCLabel Public = new DCLabel(CNF.True, CNF.True);
 
 	private CNF secrecy;
 	private CNF integrity;
 
-	public DCLabel(CNF secrecy, CNF integrity) {
-		this.secrecy = secrecy;
-		this.integrity = integrity;
+	public DCLabel(ToCNF secrecy, ToCNF integrity) {
+		this.secrecy = secrecy.toCNF();
+		this.integrity = integrity.toCNF();
+	}
+	
+	public DCLabel(String secrecyPrincipal, ToCNF integrity) {
+		this.secrecy = CNF.And(secrecyPrincipal);
+		this.integrity = integrity.toCNF();
+	}
+	
+	public DCLabel(ToCNF secrecy, String integrityPrincipal) {
+		this.secrecy = secrecy.toCNF();
+		this.integrity = CNF.And(integrityPrincipal);
+	}
+	
+	public DCLabel(String secrecyPrincipal, String integrityPrintipal) {
+		this.secrecy = CNF.And(secrecyPrincipal);
+		this.integrity = CNF.And(integrityPrintipal);
 	}
 
-	public DCLabel(Disjunction secrecy, Disjunction integrity) {
-		this.secrecy = new CNF(secrecy);
-		this.integrity = new CNF(integrity);
-	}
-
+	@Override
 	public boolean canFlowTo(DCLabel other) {
 		return other.secrecy.implies(this.secrecy)
 				&& this.integrity.implies(other.integrity);
 	}
 
+	@Override
 	public DCLabel leastUpperBound(DCLabel other) {
 		return new DCLabel(this.secrecy.union(other.secrecy),
 				this.integrity.or(other.integrity));
 	}
 
+	@Override
 	public DCLabel greatestLowerBound(DCLabel other) {
 		return new DCLabel(this.secrecy.or(other.secrecy),
 				this.integrity.union(other.integrity));

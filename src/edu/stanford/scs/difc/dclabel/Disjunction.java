@@ -1,16 +1,20 @@
 package edu.stanford.scs.difc.dclabel;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 
-public class Disjunction {
+/**
+ * A disjunction of principals. Disjunctions are immutable (the underlying data
+ * is hidden and all operations make a copy of the data if it is mutated).
+ * @author alevy
+ *
+ */
+public class Disjunction implements Iterable<String>, ToCNF {
 	
-	public static final HashSet<Disjunction> False = new HashSet<Disjunction>();
-	
-	static {
-		False.add(new Disjunction(new HashSet<String>()));
-	}
+	public static final Disjunction False = new Disjunction(new HashSet<String>());
 	
 	private HashSet<String> set;
 
@@ -19,15 +23,14 @@ public class Disjunction {
 	}
 	
 	public Disjunction(String... principals) {
-		new Disjunction(principals);
+		this.set = new HashSet<String>();
+		for (String s : principals) {
+			this.set.add(s);
+		}
 	}
 
 	public Disjunction(Collection<String> principals) {
 		this.set = new HashSet<String>(principals);
-	}
-
-	public HashSet<String> getSet() {
-		return this.set;
 	}
 
 	public boolean implies(Disjunction disjT) {
@@ -35,7 +38,8 @@ public class Disjunction {
 	}
 
 	public Disjunction union(Disjunction other) {
-		Disjunction result = new Disjunction(this.set);
+		Disjunction result = new Disjunction(new HashSet<String>());
+		result.set.addAll(this.set);
 		result.set.addAll(other.set);
 		return result;
 	}
@@ -55,16 +59,35 @@ public class Disjunction {
 	
 	@Override
 	public String toString() {
-		Iterator<String> itr = this.set.iterator();
-		String cur = itr.next();
-		if (cur == null) {
-			return "";
+		if (this.set.isEmpty()) {
+			return "False";
 		}
 		
-		String result = cur;
-		for (cur = itr.next(); cur != null; cur = itr.next()) {
-			result += " /\\ " + cur;
+		ArrayList<String> principalsList = new ArrayList<String>(this.set);
+		Collections.sort(principalsList);
+		Iterator<String> itr = principalsList.iterator();
+		String result = "";
+		if (itr.hasNext()) {
+			String cur;
+			for (cur = itr.next(); itr.hasNext(); cur = itr.next()) {
+				result +=  cur + " \\/ ";
+			}
+			result = "(" + result + cur + ")";
 		}
 		return result;
+	}
+	
+	public static Disjunction Or(String... principals) {
+		return new Disjunction(principals);
+	}
+
+	@Override
+	public Iterator<String> iterator() {
+		return this.set.iterator();
+	}
+
+	@Override
+	public CNF toCNF() {
+		return new CNF(this);
 	}
 }

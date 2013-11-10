@@ -4,7 +4,14 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 
-public class CNF {
+/**
+ * A boolean formula in Conjuctive Normal Form (ors on the inside, ands on the
+ * outside). CNFs are immutable (the underlying data is hidden and all
+ * operations make a copy of the data if it is mutated).
+ * @author alevy
+ *
+ */
+public class CNF implements Iterable<Disjunction>, ToCNF {
 	
 	public static final CNF True = new CNF(new HashSet<Disjunction>());
 
@@ -17,18 +24,17 @@ public class CNF {
 	}
 
 	public CNF(Disjunction... disjs) {
-		new CNF(disjs);
-	}
-
-	public HashSet<Disjunction> getSet() {
-		return this.set;
+		this.set = new HashSet<Disjunction>();
+		for (Disjunction d : disjs) {
+			this.set.add(d);
+		}
 	}
 
 	public boolean implies(CNF other) {
 		for (Disjunction disjO : other.set) {
 			boolean result = false;
 			for (Disjunction disjT : this.set) {
-				if (disjO.implies(disjT)) {
+				if (disjT.implies(disjO)) {
 					result = true;
 					break;
 				}
@@ -77,16 +83,41 @@ public class CNF {
 	
 	@Override
 	public String toString() {
-		Iterator<Disjunction> itr = this.set.iterator();
-		Disjunction cur = itr.next();
-		if (cur == null) {
-			return "";
+		if (this.set.isEmpty()) {
+			return "True";
 		}
 		
-		String result = "(" + cur.toString() + ")";
-		for (cur = itr.next(); cur != null; cur = itr.next()) {
-			result += " \\/ (" + cur.toString() + ")";
+		Iterator<Disjunction> itr = this.set.iterator();
+		String result = "";
+		if (itr.hasNext()) {
+			Disjunction cur;
+			for (cur = itr.next(); itr.hasNext(); cur = itr.next()) {
+				result +=  cur + " /\\ ";
+			}
+			result += cur;
 		}
 		return result;
+	}
+	
+	public static CNF And(Disjunction... disjs) {
+		return new CNF(disjs);
+	}
+	
+	public static CNF And(String... principals) {
+		Disjunction[] disjs = new Disjunction[principals.length];
+		for (int i = 0; i < principals.length; ++i) {
+			disjs[i] = new Disjunction(principals[i]);
+		}
+		return new CNF(disjs);
+	}
+
+	@Override
+	public Iterator<Disjunction> iterator() {
+		return this.set.iterator();
+	}
+
+	@Override
+	public CNF toCNF() {
+		return this;
 	}
 }
